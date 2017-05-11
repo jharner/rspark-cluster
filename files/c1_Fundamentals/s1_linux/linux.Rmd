@@ -1,0 +1,85 @@
+---
+title: "Linux"
+author: "Jim Harner"
+date: "5/7/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Data science requires underlying tools and the most basic of these is the operating system (OS). Linux is most commonly used since it is open source and has advanced features, e.g., its file system, that make handling big data feasible.
+
+Linux manages the communication between your software and your hardware resources. This course uses Docker containers based on Linux.
+
+[What is Linux?](https://www.linux.com/what-is-linux)
+
+Linux OS has a number of components, including: 
+
+* the Kernel: manages the CPU, memory, devices, etc.;  
+* daemons: run background processes at start up or those initiated by the user;  
+* the shell: allows you to issue commands (the bash shell in our case); 
+
+Linux has a graphical windowing system based on X11 and thousands of application programs, but these are hidden from us. You will access the Linux cluster through your web browser. At this time you can reach two resources: 
+
+
+[RStudio Server Pro](https://gofirst-rstudio.hpc.wvu.edu/rstudio/) for developing and running code.  
+[YARN](https://gofirst-yarn.hpc.wvu.edu) for monitoring your Hadoop and Spark processes.  
+
+Your work will be done using RStudio Server Pro. However, you have access to the `bash` shell in RStudio by selecting the `Shell...` menu item from the `Tools` menu. 
+
+The Linux kernel executes command line tools consisting of several types.  
+
+* binary executables (compiled source code), e.g., `psql` for running PostgreSQL interactively or `R` for running R;    
+* shell builtins, e.g., `cd` for changing directories and `exit` for exiting the shell;    
+* interpreted scripts, e.g., `Rscript` for running interpreted R;  
+* shell functions, i.e., functions that are executed by the bash shell.
+
+Commands are typed into a shell. In our case we will be using the `bash` shell, or "born again shell". The original UNIX shell was called `sh` and hence the name for the improved shell we now use.
+
+We will use the binary executable `psql` in module 2, i.e, M2_DataExtraction. R scripts associated with Hadoop are run in this module (Section 1.5.1).
+
+We now illustrate various shell builtin commands as RStudio Server Pro is explained. 
+
+First you will need to get content into your home directory. Select `Shell...` from the `Tools` menu. To get oriented, type the following into the shell.
+```{bash}
+pwd
+cd $HOME
+ls
+```
+`pwd` prints the working directory. We then change directory (`cd`) to the home directory using the `HOME` environmental variable, also denoted by `~`. You should now be in the directory `/home/yourloginname`. Unless you have previously added content, the directory is empty (except perhaps an `R` directory) as given by `ls`, which lists the contents of your working (in this case home) directory.
+
+Next let's make a directory for this class:
+```{bash}
+# Make the NISS directory only once
+# mkdir NISS
+cd NISS
+ls -al
+```
+`mkdir` makes a directory, in this case `NISS`. You are still in your home directory and you can list its contents with `ls -al` or `ls -a -l` if you prefer. Note that `ls`  has options where `-a` lists all files and directories, including hidden files beginning with `.` and `-l` specifies long format (`l`), which gives the permissions and other information about the owner, etc. For `NISS` you will see `drwxr-xr-x`. The first `d` indicated `NISS` is a directory. Then we have permissions (file modes) in three sequences of three each:
+
+* The first `rwx` indicates you (the owner) have read, write, and execute permissions;  
+* The second `r-x` indicate your group has read and execute permissions, but not write.  
+* The third `r-x` indicates all users have read and execute permissions, but not write.  
+
+These permissions are also denoted by `755`, where $7 = 2^2 + 2^1 + 2^0$ and the exponent is the position in the sequence `rwx` from right to left beginning at 0. In a similar vein, `r-x` can be represented as $5 = 2^2 + 0 + 2^0$. The default when you create a directory is `755`. Execute permission is important for a directory since otherwise you cannot `cd` to the directory.
+
+Note that if you want privacy you should use `700` for permissions. Let's make a temporary directory and then change its permissions.  
+```
+mkdir temp
+ls -al
+chmod 700 temp
+ls -al
+rmdir temp
+```
+We use `chmod` (change mode) to change the permissions of `temp` from the default `755` to `700`. You can check this out in each case by `ls -al`. We then remove the directory, which must be empty, by `rmdir`.
+
+Linux has a large number of built-in commands which you should gradually learn. Extensive information is given by the `man` or manual pages for each command. For example:
+```
+man chmod
+```
+Most commands have many options, but usually you can get by with a few. Often the output from `man` is overwhelming and thus you might do better by googling the command.
+
+In the next section we will create a project called `Modules`, which is a subdirectory of `~/NISS`.
+
