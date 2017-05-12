@@ -1,0 +1,125 @@
+---
+title: "Plain Text"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Material in this section (except for subsection 2.2.3) is based on material in Paul Murrell's [Introduction to Data Technologies](https://www.stat.auckland.ac.nz/~paul/ItDT/).
+
+Plain text files are the simplest way to store data. Generally, the data is stored in rows representing observations (or records) with columns representing variables. The beginning of the file may contain **metadata**, i.e., information about the data. It is sometimes called the **header**, which may represent the variable names.
+
+For example, consider the Pacific Pole of Inaccessibility data from `pointnemotemp.txt`.
+```
+             VARIABLE : Mean TS from clear sky composite (kelvin)
+             FILENAME : ISCCPMonthly_avg.nc
+             FILEPATH : /usr/local/fer_dsets/data/
+             SUBSET   : 93 points (TIME)
+             LONGITUDE: 123.8W(-123.8)
+             LATITUDE : 48.8S
+                       123.8W 
+                        23
+ 16-JAN-1994 00 /  1:  278.9
+ 16-FEB-1994 00 /  2:  280.0
+ 16-MAR-1994 00 /  3:  278.9
+ 16-APR-1994 00 /  4:  278.9
+ 16-MAY-1994 00 /  5:  277.8
+ 16-JUN-1994 00 /  6:  276.1
+```
+The first eight rows are metadata. The data of interest is in the first (date) and last (temperature) columns and is space delimited.
+
+The following are two subtypes of plain text files depending on how values are separated:  
+
+* Delimited formats:  values in a row are separated by a special character (one or more spaces, tabs, colons, etc.);   
+* Fixed-width formats:  each value in a row is allocated a fixed number of characters.  
+
+All information is stored as text.
+
+#### Computer memory
+
+The **bit** is the fundamental unit of memory that takes two values, on or off. A collection of 8 bits is a **byte**, and a collection of 4 bytes is a **word**.
+
+#### Files and formats
+
+A **file** is a block of computer memory. A file **format** is a way of interpreting the bytes in a file. In a **plain text format**, a byte represents a single character.
+
+#### Advantages and disadvantages
+
+The plain text format is simple and portable.  
+
+The disadvantages for using rows and columns is that:  
+
+* representing complex data structures is difficult and often inefficient;  
+* storing everything as characters is inefficient in terms of memory.  
+
+**Hierarchical** or **multi-level** or **stratified** data cannot easily be stored as plain text. For example, consider family data which has two types of objects: parents and children.
+
+The plain text format is not good because it is not:  
+
+* efficient due to repetition of values (violates the DRY principle);   
+* appropriate for more complex data, i.e., other than flat files. 
+
+DRY means "Don't Repeat Yourself."
+
+The **data model** is the representation of the data structure.
+
+Plain text files often lack metadata, e.g., the delimiters.
+
+#### CSV files
+
+The CSV (Comma-Separated Value) format is a special case of the plain text format. It is very reliable and common and solves the problem of where the fields are in a row.
+
+Rules for CSV files:  
+
+* Comma delimited: each field is separated by a comma;  
+* Double-quotes are special: fields containing commas enclosed by double quotes;  
+* Double-quote escape sequence: fields containing double-quotes must be surrounded by double-quotes and each embedded double-quote must be represented using two double-quotes;     
+* Header information: can have a single header line containing the names of the fields.  
+
+Often used for transferring data from spreadsheets.
+
+```{r}
+nemotemp <- read.table("pointnemotemp.txt", skip=8,
+                        colClasses=c("character", "NULL", "NULL", "NULL", "numeric"),
+                        col.names=c("date", "", "", "", "temp"))
+head(nemotemp)
+```
+The R function `read.table` reads a file in tabular format and creates a data frame. By default there is no header and the separator is blank, as above. However, we have metadata and simply skip the first 8 lines. The column classes argument, `colClasses`, is a character vector where `NULL` indicates the column is skipped. The variable names, given by `col.names`, is a character vector where `date` is `character` and `temp` is `numeric`. The resulting data frame uses `col.names` as the column names.
+
+Using one or more blanks to separate fields is dangerous if there is missing data (not the case here). We can write comma-separated data to a file using `write.csv`.
+```{r}
+write.csv(nemotemp, file="pointnemo.csv", quote=F, row.names=F)
+```
+We can then read it back in using `read.csv`, which uses `,` as a separator by default.
+```{r}
+pointnemocsv <- read.csv("pointnemo.csv", header=T)
+head(pointnemocsv)
+```
+
+#### Line endings
+
+How do lines end?
+
+OS X and Linux: ``\n``  
+Windows: ``\r\n``
+
+#### Text encodings
+
+Text formats: all data is stored as characters and each character is stored in memory as a byte.
+
+How a single character is stored in memory is called **character encoding**.  
+ASCII (American Standard Code for Information Interchange) encoding:  
+$2^8 = 256$ characters can be represented.  
+
+Other languages have special characters, e.g., Latin1 and Latin2 are not compatible. Asian and other characters use **multi-byte** encoding.  
+
+UNICODE lets computers work with all characters in all languages.  
+Every character has its own number called a **code point** often coded as `U+xxxxxx`, where `x` is a hexadecimal digit. 
+
+Two encodings to store a UNICODE code point in memory:  
+
+* UTF-16: two bytes per character;  
+* UTF-8: one or more bytes per character depending on the character.  
+For ASCII, UTF-8 uses one byte per character.  
