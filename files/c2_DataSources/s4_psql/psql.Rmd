@@ -26,7 +26,7 @@ RDBMS should maintain the ACID properties:
 * Atomicity: transactions are all or nothing;  
 * Consistency: transactions bring the database from one valid state to another;  
 * Isolation: concurrent transactions maintain state as if they are serial transactions;  
-* Durability; a committed transaction maintains state even if there are crashes, power failures, etc.  
+* Durability: a committed transaction maintains state even if there are crashes, power failures, etc.  
 
 We will be using PostgreSQL an open source DBMS that is stable and feature rich. PostgreSQL has a command-line interface for making queries called `psql`. 
 
@@ -56,7 +56,7 @@ Databases can only be setup by the database administrator (DBA). Once establishe
 ```
 /usr/bin/psql -W dataexpo < dataexpo.sql
 ```
-`dataexpo.sql` in your module 2 directory contains code for constructing tables (and their schema) and inserting the data into these tables. The order of creating tables (`CREATE TABLE`) is important since a table must be present before it can be referenced.
+`dataexpo.sql` in your working directory contains code for constructing tables (and their schema) and inserting the data into these tables. The order of creating tables (`CREATE TABLE`) is important since a table must be present before it can be referenced.
 
 The `psql` commands for listing the tables in the database(`\d) and for specific information about a specific table (`\d table`) are:
 ```
