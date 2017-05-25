@@ -7,7 +7,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Material in this section (except for subsection 2.2.3) is based on material in Paul Murrell's [Introduction to Data Technologies](https://www.stat.auckland.ac.nz/~paul/ItDT/).
+Material in this section is based on material in Paul Murrell's [Introduction to Data Technologies](https://www.stat.auckland.ac.nz/~paul/ItDT/).
 
 Plain text files are the simplest way to store data. Generally, the data is stored in rows representing observations (or records) with columns representing variables. The beginning of the file may contain **metadata**, i.e., information about the data. It is sometimes called the **header**, which may represent the variable names.
 
