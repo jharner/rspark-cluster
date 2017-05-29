@@ -1,6 +1,6 @@
 library("RJDBC")
 .jinit(classpath = Sys.getenv("CLASSPATH"))
-drv <- JDBC("org.apache.hive.jdbc.HiveDriver", "/opt/hive/jdbc/hive-jdbc-2.1.0-standalone.jar", identifier.quote = "'")
+drv <- JDBC("org.apache.hive.jdbc.HiveDriver", "/opt/hive/jdbc/hive-jdbc-2.1.1-standalone.jar", identifier.quote = "'")
 con <- dbConnect(drv, "jdbc:hive2://hive:10000/rstudio", "rstudio", "")
 
 dbSendUpdate(con, "drop table if exists test1 PURGE")
