@@ -8,10 +8,10 @@ ARG sparkversion=2.4.6
 RUN apt-get update \
  && apt-get install -y locales \
  && dpkg-reconfigure -f noninteractive locales \
- && locale-gen C.UTF-8 \
- && /usr/sbin/update-locale LANG=C.UTF-8 \
- && echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen \
- && locale-gen \
+# && locale-gen C.UTF-8 \
+# && /usr/sbin/update-locale LANG=C.UTF-8 \
+# && echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen \
+# && locale-gen \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
@@ -25,7 +25,7 @@ RUN apt-get update \
  && apt-get install -y curl unzip \
     python3 python3-setuptools \
  && ln -s /usr/bin/python3 /usr/bin/python \
- && easy_install3 pip py4j \
+# && easy_install3 pip py4j \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
