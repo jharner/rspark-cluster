@@ -14,8 +14,8 @@ services:
       - "4040:4040"
       - "4041:4041"
     networks:
-      rconnect-network:
-      rspark-network:
+      rconnect-work:
+        name: rconnect-work
 
   worker1:
     image: rspark-master
@@ -30,8 +30,8 @@ services:
       SPARK_WORKER_CORES: 1
       SPARK_WORKER_MEMORY: 2g
     networks:
-      rconnect-network:
-      rspark-network:
+      rconnect-work:
+        name: rconnect-work
     depends_on:
       - master
 
@@ -49,10 +49,10 @@ services:
       SPARK_WORKER_MEMORY: 2g
     networks:
       rconnect-network:
-      rspark-network:
+        name: rconnect-work
     depends_on:
       - master
 
 networks:
   rconnect-network:
-  rspark-network:
+    name: rconnect-work
