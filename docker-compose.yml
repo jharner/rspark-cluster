@@ -1,4 +1,4 @@
-version: '3'
+version: '3.5'
 services:
     
   master:
@@ -14,8 +14,7 @@ services:
       - "4040:4040"
       - "4041:4041"
     networks:
-      rconnect_work:
-#        name: rconnect-work
+      rconnect_network:
 
   worker1:
     image: rspark-master
@@ -30,8 +29,7 @@ services:
       SPARK_WORKER_CORES: 1
       SPARK_WORKER_MEMORY: 2g
     networks:
-      rconnect_work:
-#        name: rconnect-work
+      rconnect_network:
     depends_on:
       - master
 
@@ -48,12 +46,11 @@ services:
       SPARK_WORKER_CORES: 1
       SPARK_WORKER_MEMORY: 2g
     networks:
-      rconnect_work:
-#        name: rconnect-work
+      rconnect_network:
     depends_on:
       - master
 
 networks:
-  rconnect_work:
-    external:
-      name: rconnect_work
+  rconnect_network:
+    name: rconnect
+    driver: bridge
