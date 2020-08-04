@@ -24,7 +24,7 @@ ENV LC_ALL en_US.UTF-8
 RUN apt-get update && \
     apt-get install -y curl unzip python3 python3-setuptools python3-pip && \
     ln -s /usr/bin/python3 /usr/bin/python && \
-    python -m pip install py4j && \
+    python -m pip install py4j pyarrow && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 # http://blog.stuart.axelbrooke.com/python-3-on-spark-return-of-the-pythonhashseed
@@ -39,6 +39,12 @@ RUN apt-get update && \
 	apt-get update && \
 	apt-get install -y adoptopenjdk-8-hotspot && \
 	update-java-alternatives -s /usr/lib/jvm/adoptopenjdk-8-hotspot-amd64 && \
+	cd /opt && \
+    wget https://apache.bintray.com/arrow/$(lsb_release --id --short | tr 'A-Z' 'a-z')/apache-arrow-archive-keyring-latest-$(lsb_release --codename --short).deb && \
+    apt-get install -y -V ./apache-arrow-archive-keyring-latest-$(lsb_release --codename --short).deb && \
+    apt-get update && \
+    apt-get install -y -V libarrow-dev libarrow-glib-dev libarrow-dataset-dev libarrow-flight-dev libplasma-dev libplasma-glib-dev libgandiva-dev libgandiva-glib-dev libparquet-dev libparquet-glib-dev && \
+    rm ./apache-arrow-archive-keyring-latest-$(lsb_release --codename --short).deb && \
 	apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -90,6 +96,7 @@ RUN gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys E298A3A825C0D65DFD
     ln -s /usr/share/doc/littler/examples/installGithub.r /usr/local/bin/installGithub.r && \
     ln -s /usr/share/doc/littler/examples/testInstalled.r /usr/local/bin/testInstalled.r && \
     install.r docopt && \
+    Rscript -e "install.packages(c(\"arrow\"), repos = 'http://cran.rstudio.com')" && \
     rm -rf /tmp/downloaded_packages/ /tmp/*.rds && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
