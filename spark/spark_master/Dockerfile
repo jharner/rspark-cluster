@@ -1,3 +1,4 @@
+
 FROM ubuntu:bionic
 MAINTAINER Jim Harner <ejharner@gmail.com>
 
@@ -7,6 +8,33 @@ ARG sparkversion=2.4.6
 ARG javaversion=8
 ARG javaversion_number=1.${javaversion}.0
 
+# http://blog.stuart.axelbrooke.com/python-3-on-spark-return-of-the-pythonhashseed
+ENV PYTHONHASHSEED 0
+ENV PYTHONIOENCODING UTF-8
+ENV PIP_DISABLE_PIP_VERSION_CHECK 1
+ENV HADOOP_VERSION hadoopversion
+ENV HADOOP_HOME /opt/hadoop
+ENV HADOOP_CONF_DIR ${HADOOP_HOME}/etc/hadoop
+ENV PATH ${HADOOP_HOME}/bin:${PATH}
+ENV HADOOP_CMD ${HADOOP_HOME}/bin/hadoop
+ENV HADOOP_BIN ${HADOOP_HOME}/bin
+ENV SPARK_VERSION ${sparkversion}
+ENV SPARK_PACKAGE spark-${SPARK_VERSION}-bin-without-hadoop
+ENV SPARK_HOME /opt/spark
+ENV SPARK_DIST_CLASSPATH "${HADOOP_HOME}/etc/hadoop/*:${HADOOP_HOME}/share/hadoop/common/lib/*:${HADOOP_HOME}/share/hadoop/common/*:${HADOOP_HOME}/share/hadoop/hdfs/*:${HADOOP_HOME}/share/hadoop/hdfs/lib/*:${HADOOP_HOME}/share/hadoop/hdfs/*:${HADOOP_HOME}/share/hadoop/yarn/lib/*:${HADOOP_HOME}/share/hadoop/yarn/*:${HADOOP_HOME}/share/hadoop/mapreduce/lib/*:${HADOOP_HOME}/share/hadoop/mapreduce/*:${HADOOP_HOME}/share/hadoop/tools/lib/*"
+ENV PATH ${SPARK_HOME}/bin:${PATH}
+ENV R_BASE_VERSION 3.6.3
+ENV LD_LIBRARY_PATH $JAVA_HOME/jre/lib/amd64:$JAVA_HOME/jre/lib/amd64/server
+ENV PATH=/opt/hadoop/bin:/opt/spark/bin:/opt/hive/bin:$PATH
+ARG DEBIAN_FRONTEND=noninteractive
+COPY postgresKey.asc openjdkKey.asc /tmp/
+
+#    apt-get install -y locales && \
+#    dpkg-reconfigure -f noninteractive locales && \
+#    locale-gen en_US.UTF-8 && \
+#    /usr/sbin/update-locale LANG=en_US.UTF-8 && \
+#    echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen && \
+#    locale-gen && \
 RUN apt-get update && \
     apt-get install -y locales && \
     dpkg-reconfigure -f noninteractive locales && \
@@ -16,71 +44,80 @@ RUN apt-get update && \
     locale-gen && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
-# Users with other locales should set this in their derivative image
+
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
 # Install Python 3
 RUN apt-get update && \
-    apt-get install -y curl unzip python3 python3-setuptools python3-pip && \
+    apt-get install -y --no-install-recommends curl unzip python3 python3-setuptools python3-pip apt-utils wget ca-certificates apt-transport-https dirmngr gnupg software-properties-common lsb-release unzip && \
     ln -s /usr/bin/python3 /usr/bin/python && \
-    python -m pip install py4j pyarrow && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-# http://blog.stuart.axelbrooke.com/python-3-on-spark-return-of-the-pythonhashseed
-ENV PYTHONHASHSEED 0
-ENV PYTHONIOENCODING UTF-8
-ENV PIP_DISABLE_PIP_VERSION_CHECK 1
 # JAVA
-RUN apt-get update && \
-	apt-get install -y  apt-transport-https ca-certificates wget dirmngr gnupg software-properties-common && \
-	wget -qO - https://adoptopenjdk.jfrog.io/adoptopenjdk/api/gpg/key/public | apt-key add - && \
+    apt-key add /tmp/postgresKey.asc && \
+    apt-key add /tmp/openjdkKey.asc && \
+    add-apt-repository --yes 'deb http://apt.postgresql.org/pub/repos/apt/ bionic-pgdg main' && \
 	add-apt-repository --yes https://adoptopenjdk.jfrog.io/adoptopenjdk/deb/ && \
-	apt-get update && \
-	apt-get install -y adoptopenjdk-8-hotspot && \
-	update-java-alternatives -s /usr/lib/jvm/adoptopenjdk-8-hotspot-amd64 && \
+# Update machine and install
+    apt-get update && \
+    apt-get install --no-install-recommends -y postgresql-client-${pgversion} libicu-dev adoptopenjdk-8-hotspot && \
+    update-java-alternatives -s adoptopenjdk-8-hotspot-amd64 && \
+#	wget -qO - https://adoptopenjdk.jfrog.io/adoptopenjdk/api/gpg/key/public | apt-key add - && \
+#	add-apt-repository --yes https://adoptopenjdk.jfrog.io/adoptopenjdk/deb/ && \
+#	apt-get update && \
+#	apt-get install -y adoptopenjdk-8-hotspot && \
+#	update-java-alternatives -s /usr/lib/jvm/adoptopenjdk-8-hotspot-amd64 && \
 	cd /opt && \
     wget https://apache.bintray.com/arrow/$(lsb_release --id --short | tr 'A-Z' 'a-z')/apache-arrow-archive-keyring-latest-$(lsb_release --codename --short).deb && \
     apt-get install -y -V ./apache-arrow-archive-keyring-latest-$(lsb_release --codename --short).deb && \
     apt-get update && \
     apt-get install -y -V libarrow-dev libarrow-glib-dev libarrow-dataset-dev libarrow-flight-dev libplasma-dev libplasma-glib-dev libgandiva-dev libgandiva-glib-dev libparquet-dev libparquet-glib-dev && \
     rm ./apache-arrow-archive-keyring-latest-$(lsb_release --codename --short).deb && \
+    python -m pip install py4j pyarrow && \
+    wget --quiet https://jdbc.postgresql.org/download/postgresql-42.2.14.jar && \
+    echo "JAVA_HOME=/usr/lib/jvm/adoptopenjdk-8-hotspot-amd64" >> /etc/profile && \
+    export JAVA_HOME=/usr/lib/jvm/adoptopenjdk-8-hotspot-amd64 && \
 	apt-get clean && \
     rm -rf /var/lib/apt/lists/*
-
 ####################
 # HADOOP
 ####################
-ENV HADOOP_VERSION 2.9.2
-ENV HADOOP_HOME /usr/hadoop-${HADOOP_VERSION}
-ENV HADOOP_CONF_DIR ${HADOOP_HOME}/etc/hadoop
-ENV PATH ${HADOOP_HOME}/bin:${PATH}
-ENV HADOOP_CMD ${HADOOP_HOME}/bin/hadoop
-ENV HADOOP_BIN ${HADOOP_HOME}/bin
-RUN curl -sL --retry 3 \
-"http://archive.apache.org/dist/hadoop/common/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz" \
-  | gunzip \
-  | tar -x -C /usr/ \
- && rm -rf $HADOOP_HOME/share/doc \
- && chown -R root:root $HADOOP_HOME
-
+RUN cd /opt && \
+    wget --quiet http://archive.apache.org/dist/hadoop/core/hadoop-${hadoopversion}/hadoop-${hadoopversion}.tar.gz && \
+	tar zxf hadoop-${hadoopversion}.tar.gz && \
+	mv hadoop-${hadoopversion} hadoop && \
+    rm -rf $HADOOP_HOME/share/doc  && \
+	rm hadoop-${hadoopversion}.tar.gz && \
+	(cd /opt/hadoop; ln -s share/hadoop/tools/lib/hadoop-streaming-${hadoopversion}.jar hadoop-streaming.jar) && \
+    chown -R root:root $HADOOP_HOME && \
+####################
+# HIVE
+####################
+    cd /opt && \
+	wget --quiet http://archive.apache.org/dist/hive/hive-${hiveversion}/apache-hive-${hiveversion}-bin.tar.gz && \
+	tar zxf apache-hive-${hiveversion}-bin.tar.gz && \
+	ln -s apache-hive-${hiveversion}-bin hive && \
+	ln -s /opt/hive/jdbc/hive-jdbc-${hiveversion}-standalone.jar /opt/hive/lib/ && \
+	ln -s /usr/share/java/postgresql-jdbc4.jar /opt/hive/lib/postgresql-jdbc4.jar && \
+	rm apache-hive-${hiveversion}-bin.tar.gz && \
+	apt-get clean && \
+	rm -rf /var/lib/apt/lists/*
 # SPARK
-ENV SPARK_VERSION 2.4.6
-ENV SPARK_PACKAGE spark-${SPARK_VERSION}-bin-without-hadoop
-ENV SPARK_HOME /usr/spark-${SPARK_VERSION}
-ENV SPARK_DIST_CLASSPATH "${HADOOP_HOME}/etc/hadoop/*:${HADOOP_HOME}/share/hadoop/common/lib/*:${HADOOP_HOME}/share/hadoop/common/*:${HADOOP_HOME}/share/hadoop/hdfs/*:${HADOOP_HOME}/share/hadoop/hdfs/lib/*:${HADOOP_HOME}/share/hadoop/hdfs/*:${HADOOP_HOME}/share/hadoop/yarn/lib/*:${HADOOP_HOME}/share/hadoop/yarn/*:${HADOOP_HOME}/share/hadoop/mapreduce/lib/*:${HADOOP_HOME}/share/hadoop/mapreduce/*:${HADOOP_HOME}/share/hadoop/tools/lib/*"
-ENV PATH ${SPARK_HOME}/bin:${PATH}
-RUN curl -sL --retry 3 \
-  "http://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/${SPARK_PACKAGE}.tgz" \
-  | gunzip \
-  | tar x -C /usr/ \
- && mv /usr/$SPARK_PACKAGE $SPARK_HOME \
- && chown -R root:root $SPARK_HOME
+RUN cd /opt  && \
+	wget --quiet http://archive.apache.org/dist/spark/spark-${sparkversion}/${SPARK_PACKAGE}.tgz  && \
+	gunzip ${SPARK_PACKAGE}.tgz && \
+	tar zxvf ${SPARK_PACKAGE}.tar  && \
+	mv ${SPARK_PACKAGE} spark  && \
+	rm ${SPARK_PACKAGE}.tgz  && \
+	cp /opt/spark/conf/spark-env.sh.template /opt/spark/conf/spark-env.sh  && \
+	echo 'export SPARK_DIST_CLASSPATH=/opt/postgresql-42.2.14.jar:$(/opt/hadoop/bin/hadoop classpath)' >> /opt/spark/conf/spark-env.sh && \
+    chown -R root:root $SPARK_HOME && \
+#    echo "JAVA_HOME=/usr/lib/jvm/adoptopenjdk-8-hotspot-amd64" >> ${HADOOP_HOME}/etc/hadoop/hadoop-env.sh && \
+	apt-get clean && \
+	rm -rf /var/lib/apt/lists/*
+
 ## Use Debian unstable via pinning -- new style via APT::Default-Release
 #RUN echo "deb http://http.debian.net/debian sid main" > /etc/apt/sources.list.d/debian-unstable.list \
 #    && echo 'APT::Default-Release "testing";' > /etc/apt/apt.conf.d/default
-ENV R_BASE_VERSION 3.6.3
-ARG DEBIAN_FRONTEND=noninteractive
 RUN gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9 && \
     gpg -a --export E298A3A825C0D65DFD57CBB651716619E084DAB9 | apt-key add - && \
     add-apt-repository -s 'deb https://cloud.r-project.org/bin/linux/ubuntu bionic-cran35/' && \
@@ -88,18 +125,37 @@ RUN gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys E298A3A825C0D65DFD
 ## Also set a default CRAN repo, and make sure littler knows about it too
     apt-get update && \
 ###     apt-get install -y --no-install-recommends littler r-cran-littler r-base-${R_BASE_VERSION} r-base-dev-${R_BASE_VERSION} r-recommended=${R_BASE_VERSION} && \
-    apt-get install -y --no-install-recommends littler r-cran-littler r-base r-base-dev r-recommended && \
-    echo 'options(repos = c(CRAN = "https://cran.rstudio.com/"), download.file.method = "libcurl")' >> /etc/R/Rprofile.site && \
-    echo 'source("/etc/R/Rprofile.site")' >> /etc/littler.r && \
-    ln -s /usr/share/doc/littler/examples/install.r /usr/local/bin/install.r && \
-    ln -s /usr/share/doc/littler/examples/install2.r /usr/local/bin/install2.r && \
-    ln -s /usr/share/doc/littler/examples/installGithub.r /usr/local/bin/installGithub.r && \
-    ln -s /usr/share/doc/littler/examples/testInstalled.r /usr/local/bin/testInstalled.r && \
-    install.r docopt && \
-    Rscript -e "install.packages(c(\"arrow\"), repos = 'http://cran.rstudio.com')" && \
+#    apt-get install -y --no-install-recommends littler r-cran-littler r-base r-base-dev r-recommended && \
+    apt-get install -y --no-install-recommends r-base r-base-dev r-recommended && \
+#    echo 'options(repos = c(CRAN = "https://cran.rstudio.com/"), download.file.method = "libcurl")' >> /etc/R/Rprofile.site && \
+#    echo 'source("/etc/R/Rprofile.site")' >> /etc/littler.r && \
+#    ln -s /usr/share/doc/littler/examples/install.r /usr/local/bin/install.r && \
+#    ln -s /usr/share/doc/littler/examples/install2.r /usr/local/bin/install2.r && \
+#    ln -s /usr/share/doc/littler/examples/installGithub.r /usr/local/bin/installGithub.r && \
+#    ln -s /usr/share/doc/littler/examples/testInstalled.r /usr/local/bin/testInstalled.r && \
+#    install.r docopt && \
+    Rscript -e "install.packages(c(\"arrow\", \"rJava\", \"rjson\", \"RJSONIO\", \"jsonlite\", \"functional\", \"R.methodsS3\", \"caTools\", \"trelliscopejs\", \"RPostgreSQL\", \"RJDBC\", \"housingData\", \"Lahman\", \"nycflights13\", \"flexdashboard\", \"sparklyr\", \"glmnet\", \"reticulate\", \"tensorflow\"), repos = 'http://cran.rstudio.com')" && \
+#    Rscript -e "install.packages(c(\"arrow\"), repos = 'http://cran.rstudio.com')" && \
     rm -rf /tmp/downloaded_packages/ /tmp/*.rds && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+ADD Renviron /usr/local/lib/R/etc/
+ADD hdfs-site.xml core-site.xml log4j.properties /opt/hadoop/etc/hadoop/
+ADD rhdfs.tar.gz rmr.tar.gz /tmp/pkgs/
+ADD protobuf-2.5.0.tar.gz Rhipe_0.75.2_hadoop-2.tar.gz /tmp/
+
+# Install repository packages
+# RUN cd /tmp/pkgs && R CMD INSTALL rmr2 rhdfs
+RUN cd /tmp/protobuf-2.5.0 && ./configure --prefix=/usr && make && make install && cd .. 	&& rm -rf protobuf-* && \
+	cd /tmp/Rhipe && R CMD INSTALL . && cd .. && rm -rf Rhipe
+
+#ADD postgresql-42.2.2.jar /opt
+RUN ln -s /usr/local/bin/Rscript /usr/bin/Rscript && \
+# Add path to profile so commands are found if attach to the container
+    echo "PATH='/opt/hadoop/bin:/opt/spark/bin:/opt/hive/bin:$PATH'" >> /etc/profile && \
+    export PATH=/opt/hadoop/bin:/opt/spark/bin:/opt/hive/bin:$PATH && \
+    echo "PATH='/opt/hadoop/bin:/opt/spark/bin:/opt/hive/bin:$PATH'" >> /home/rstudio/.bashrc
 
 WORKDIR $SPARK_HOME
 CMD ["bin/spark-class", "org.apache.spark.deploy.master.Master"]
@@ -107,7 +163,7 @@ CMD ["bin/spark-class", "org.apache.spark.deploy.master.Master"]
 EXPOSE 7077
 EXPOSE 8080
 EXPOSE 8081
-# EXPOSE 4040
+EXPOSE 4040
 
-
+###########################################################################################
 
