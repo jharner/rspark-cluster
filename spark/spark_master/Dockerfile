@@ -29,12 +29,6 @@ ENV PATH=/opt/hadoop/bin:/opt/spark/bin:/opt/hive/bin:$PATH
 ARG DEBIAN_FRONTEND=noninteractive
 COPY postgresKey.asc openjdkKey.asc /tmp/
 
-#    apt-get install -y locales && \
-#    dpkg-reconfigure -f noninteractive locales && \
-#    locale-gen en_US.UTF-8 && \
-#    /usr/sbin/update-locale LANG=en_US.UTF-8 && \
-#    echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen && \
-#    locale-gen && \
 RUN apt-get update && \
     apt-get install -y locales && \
     dpkg-reconfigure -f noninteractive locales && \
@@ -95,7 +89,7 @@ RUN cd /opt && \
     cd /opt && \
 	wget --quiet http://archive.apache.org/dist/hive/hive-${hiveversion}/apache-hive-${hiveversion}-bin.tar.gz && \
 	tar zxf apache-hive-${hiveversion}-bin.tar.gz && \
-	ln -s apache-hive-${hiveversion}-bin hive && \
+	mv apache-hive-${hiveversion}-bin hive && \
 	ln -s /opt/hive/jdbc/hive-jdbc-${hiveversion}-standalone.jar /opt/hive/lib/ && \
 	ln -s /usr/share/java/postgresql-jdbc4.jar /opt/hive/lib/postgresql-jdbc4.jar && \
 	rm apache-hive-${hiveversion}-bin.tar.gz && \
@@ -104,14 +98,14 @@ RUN cd /opt && \
 # SPARK
 RUN cd /opt  && \
 	wget --quiet http://archive.apache.org/dist/spark/spark-${sparkversion}/${SPARK_PACKAGE}.tgz  && \
-	gunzip ${SPARK_PACKAGE}.tgz && \
-	tar zxvf ${SPARK_PACKAGE}.tar  && \
+#	gunzip ${SPARK_PACKAGE}.tgz && \
+	tar zxvf ${SPARK_PACKAGE}.tgz  && \
 	mv ${SPARK_PACKAGE} spark  && \
 	rm ${SPARK_PACKAGE}.tgz  && \
 	cp /opt/spark/conf/spark-env.sh.template /opt/spark/conf/spark-env.sh  && \
 	echo 'export SPARK_DIST_CLASSPATH=/opt/postgresql-42.2.14.jar:$(/opt/hadoop/bin/hadoop classpath)' >> /opt/spark/conf/spark-env.sh && \
     chown -R root:root $SPARK_HOME && \
-#    echo "JAVA_HOME=/usr/lib/jvm/adoptopenjdk-8-hotspot-amd64" >> ${HADOOP_HOME}/etc/hadoop/hadoop-env.sh && \
+    echo "JAVA_HOME=/usr/lib/jvm/adoptopenjdk-8-hotspot-amd64" >> /opt/hadoop/etc/hadoop/hadoop-env.sh && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
 
@@ -147,11 +141,14 @@ ADD protobuf-2.5.0.tar.gz Rhipe_0.75.2_hadoop-2.tar.gz /tmp/
 
 # Install repository packages
 # RUN cd /tmp/pkgs && R CMD INSTALL rmr2 rhdfs
-RUN cd /tmp/protobuf-2.5.0 && ./configure --prefix=/usr && make && make install && cd .. 	&& rm -rf protobuf-* && \
-	cd /tmp/Rhipe && R CMD INSTALL . && cd .. && rm -rf Rhipe
+RUN cd /tmp && \
+#    tar zxf protobuf-2.5.0.tar.gz && \
+#    tar zxf Rhipe_0.75.2_hadoop-2.tar.gz
+    cd /tmp/protobuf-2.5.0 && ./configure --prefix=/usr && make && make install && cd .. 	&& rm -rf protobuf-*
+#    && \ cd /tmp/Rhipe && R CMD INSTALL . && cd .. && rm -rf Rhipe
 
 #ADD postgresql-42.2.2.jar /opt
-RUN ln -s /usr/local/bin/Rscript /usr/bin/Rscript && \
+RUN # ln -s /usr/local/bin/Rscript /usr/bin/Rscript && \
 # Add path to profile so commands are found if attach to the container
     echo "PATH='/opt/hadoop/bin:/opt/spark/bin:/opt/hive/bin:$PATH'" >> /etc/profile && \
     export PATH=/opt/hadoop/bin:/opt/spark/bin:/opt/hive/bin:$PATH && \
