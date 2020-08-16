@@ -163,4 +163,7 @@ EXPOSE 8081
 EXPOSE 4040
 
 ###########################################################################################
-
+## link to protobuf-all libraries
+# https://github.com/protocolbuffers/protobuf/releases/download/v3.13.0/protobuf-all-3.13.0.tar.gz
+# C++
+# https://github.com/protocolbuffers/protobuf/releases/download/v3.13.0/protobuf-cpp-3.13.0.tar.gz
