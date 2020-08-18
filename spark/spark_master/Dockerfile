@@ -22,10 +22,9 @@ ENV SPARK_VERSION ${sparkversion}
 ENV SPARK_PACKAGE spark-${SPARK_VERSION}-bin-without-hadoop
 ENV SPARK_HOME /opt/spark
 ENV SPARK_DIST_CLASSPATH "${HADOOP_HOME}/etc/hadoop/*:${HADOOP_HOME}/share/hadoop/common/lib/*:${HADOOP_HOME}/share/hadoop/common/*:${HADOOP_HOME}/share/hadoop/hdfs/*:${HADOOP_HOME}/share/hadoop/hdfs/lib/*:${HADOOP_HOME}/share/hadoop/hdfs/*:${HADOOP_HOME}/share/hadoop/yarn/lib/*:${HADOOP_HOME}/share/hadoop/yarn/*:${HADOOP_HOME}/share/hadoop/mapreduce/lib/*:${HADOOP_HOME}/share/hadoop/mapreduce/*:${HADOOP_HOME}/share/hadoop/tools/lib/*"
-ENV PATH ${SPARK_HOME}/bin:${PATH}
 ENV R_BASE_VERSION 3.6.3
 ENV LD_LIBRARY_PATH $JAVA_HOME/jre/lib/amd64:$JAVA_HOME/jre/lib/amd64/server
-ENV PATH=/opt/hadoop/bin:/opt/spark/bin:/opt/hive/bin:$PATH
+ENV PATH=/opt/hadoop/bin:/opt/spark/bin:/opt/hive/bin:${PATH}
 ARG DEBIAN_FRONTEND=noninteractive
 COPY postgresKey.asc openjdkKey.asc /tmp/
 
@@ -57,9 +56,6 @@ RUN apt-get update && \
     update-java-alternatives -s adoptopenjdk-8-hotspot-amd64 && \
 #	wget -qO - https://adoptopenjdk.jfrog.io/adoptopenjdk/api/gpg/key/public | apt-key add - && \
 #	add-apt-repository --yes https://adoptopenjdk.jfrog.io/adoptopenjdk/deb/ && \
-#	apt-get update && \
-#	apt-get install -y adoptopenjdk-8-hotspot && \
-#	update-java-alternatives -s /usr/lib/jvm/adoptopenjdk-8-hotspot-amd64 && \
 	cd /opt && \
     wget https://apache.bintray.com/arrow/$(lsb_release --id --short | tr 'A-Z' 'a-z')/apache-arrow-archive-keyring-latest-$(lsb_release --codename --short).deb && \
     apt-get install -y -V ./apache-arrow-archive-keyring-latest-$(lsb_release --codename --short).deb && \
@@ -72,9 +68,7 @@ RUN apt-get update && \
     export JAVA_HOME=/usr/lib/jvm/adoptopenjdk-8-hotspot-amd64 && \
 	apt-get clean && \
     rm -rf /var/lib/apt/lists/*
-####################
-# HADOOP
-####################
+## HADOOP
 RUN cd /opt && \
     wget --quiet http://archive.apache.org/dist/hadoop/core/hadoop-${hadoopversion}/hadoop-${hadoopversion}.tar.gz && \
 	tar zxf hadoop-${hadoopversion}.tar.gz && \
@@ -83,9 +77,7 @@ RUN cd /opt && \
 	rm hadoop-${hadoopversion}.tar.gz && \
 	(cd /opt/hadoop; ln -s share/hadoop/tools/lib/hadoop-streaming-${hadoopversion}.jar hadoop-streaming.jar) && \
     chown -R root:root $HADOOP_HOME && \
-####################
-# HIVE
-####################
+## HIVE
     cd /opt && \
 	wget --quiet http://archive.apache.org/dist/hive/hive-${hiveversion}/apache-hive-${hiveversion}-bin.tar.gz && \
 	tar zxf apache-hive-${hiveversion}-bin.tar.gz && \
@@ -95,13 +87,15 @@ RUN cd /opt && \
 	rm apache-hive-${hiveversion}-bin.tar.gz && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
-# SPARK
+## SPARK
 RUN cd /opt  && \
 	wget --quiet http://archive.apache.org/dist/spark/spark-${sparkversion}/${SPARK_PACKAGE}.tgz  && \
 #	gunzip ${SPARK_PACKAGE}.tgz && \
 	tar zxvf ${SPARK_PACKAGE}.tgz  && \
 	mv ${SPARK_PACKAGE} spark  && \
 	rm ${SPARK_PACKAGE}.tgz  && \
+    mkdir /opt/spark-data && \
+    chown -R root:root /opt/spark-data && \
 	cp /opt/spark/conf/spark-env.sh.template /opt/spark/conf/spark-env.sh  && \
 	echo 'export SPARK_DIST_CLASSPATH=/opt/postgresql-42.2.14.jar:$(/opt/hadoop/bin/hadoop classpath)' >> /opt/spark/conf/spark-env.sh && \
     chown -R root:root $SPARK_HOME && \
@@ -109,9 +103,6 @@ RUN cd /opt  && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
 
-## Use Debian unstable via pinning -- new style via APT::Default-Release
-#RUN echo "deb http://http.debian.net/debian sid main" > /etc/apt/sources.list.d/debian-unstable.list \
-#    && echo 'APT::Default-Release "testing";' > /etc/apt/apt.conf.d/default
 RUN gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9 && \
     gpg -a --export E298A3A825C0D65DFD57CBB651716619E084DAB9 | apt-key add - && \
     add-apt-repository -s 'deb https://cloud.r-project.org/bin/linux/ubuntu bionic-cran35/' && \
@@ -128,8 +119,8 @@ RUN gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys E298A3A825C0D65DFD
 #    ln -s /usr/share/doc/littler/examples/installGithub.r /usr/local/bin/installGithub.r && \
 #    ln -s /usr/share/doc/littler/examples/testInstalled.r /usr/local/bin/testInstalled.r && \
 #    install.r docopt && \
-    Rscript -e "install.packages(c(\"arrow\", \"rJava\", \"rjson\", \"RJSONIO\", \"jsonlite\", \"functional\", \"R.methodsS3\", \"caTools\", \"trelliscopejs\", \"RPostgreSQL\", \"RJDBC\", \"housingData\", \"Lahman\", \"nycflights13\", \"flexdashboard\", \"sparklyr\", \"glmnet\", \"reticulate\", \"tensorflow\"), repos = 'http://cran.rstudio.com')" && \
-#    Rscript -e "install.packages(c(\"arrow\"), repos = 'http://cran.rstudio.com')" && \
+#    Rscript -e "install.packages(c(\"arrow\", \"rJava\", \"rjson\", \"RJSONIO\", \"jsonlite\", \"functional\", \"R.methodsS3\", \"caTools\", \"trelliscopejs\", \"RPostgreSQL\", \"RJDBC\", \"housingData\", \"Lahman\", \"nycflights13\", \"flexdashboard\", \"sparklyr\", \"glmnet\", \"reticulate\", \"tensorflow\"), repos = 'http://cran.rstudio.com')" && \
+    Rscript -e "install.packages(c(\"arrow\",  \"rJava\", \"rjson\", \"RJSONIO\", \"jsonlite\", \"caTools\", \"trelliscopejs\", \"RPostgreSQL\", \"RJDBC\", \"sparklyr\", \"glmnet\", \"reticulate\", \"tensorflow\"), repos = 'http://cran.rstudio.com')" && \
     rm -rf /tmp/downloaded_packages/ /tmp/*.rds && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -137,17 +128,12 @@ RUN gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys E298A3A825C0D65DFD
 ADD Renviron /usr/local/lib/R/etc/
 ADD hdfs-site.xml core-site.xml log4j.properties /opt/hadoop/etc/hadoop/
 ADD rhdfs.tar.gz rmr.tar.gz /tmp/pkgs/
-ADD protobuf-2.5.0.tar.gz Rhipe_0.75.2_hadoop-2.tar.gz /tmp/
+ADD protobuf-2.5.0.tar.gz /tmp/
 
 # Install repository packages
 # RUN cd /tmp/pkgs && R CMD INSTALL rmr2 rhdfs
 RUN cd /tmp && \
-#    tar zxf protobuf-2.5.0.tar.gz && \
-#    tar zxf Rhipe_0.75.2_hadoop-2.tar.gz
     cd /tmp/protobuf-2.5.0 && ./configure --prefix=/usr && make && make install && cd .. 	&& rm -rf protobuf-*
-#    && \ cd /tmp/Rhipe && R CMD INSTALL . && cd .. && rm -rf Rhipe
-
-#ADD postgresql-42.2.2.jar /opt
 RUN # ln -s /usr/local/bin/Rscript /usr/bin/Rscript && \
 # Add path to profile so commands are found if attach to the container
     echo "PATH='/opt/hadoop/bin:/opt/spark/bin:/opt/hive/bin:$PATH'" >> /etc/profile && \
