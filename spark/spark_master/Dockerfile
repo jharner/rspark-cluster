@@ -18,6 +18,8 @@ ENV HADOOP_CONF_DIR ${HADOOP_HOME}/etc/hadoop
 ENV PATH ${HADOOP_HOME}/bin:${PATH}
 ENV HADOOP_CMD ${HADOOP_HOME}/bin/hadoop
 ENV HADOOP_BIN ${HADOOP_HOME}/bin
+ENV HIVE_HOME /opt/hive
+ENV HIVE_BIN ${HIVE_HOME}/bin
 ENV SPARK_VERSION ${sparkversion}
 ENV SPARK_PACKAGE spark-${SPARK_VERSION}-bin-without-hadoop
 ENV SPARK_HOME /opt/spark
@@ -68,6 +70,7 @@ RUN apt-get update && \
     export JAVA_HOME=/usr/lib/jvm/adoptopenjdk-8-hotspot-amd64 && \
 	apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
 ## HADOOP
 RUN cd /opt && \
     wget --quiet http://archive.apache.org/dist/hadoop/core/hadoop-${hadoopversion}/hadoop-${hadoopversion}.tar.gz && \
@@ -77,14 +80,19 @@ RUN cd /opt && \
 	rm hadoop-${hadoopversion}.tar.gz && \
 	(cd /opt/hadoop; ln -s share/hadoop/tools/lib/hadoop-streaming-${hadoopversion}.jar hadoop-streaming.jar) && \
     chown -R root:root $HADOOP_HOME && \
+    mkdir -p /opt/hadoop-data; chown -R root:root /opt/hadoop-data; chmod 700 /opt/hadoop-data && \
 ## HIVE
-    cd /opt && \
-	wget --quiet http://archive.apache.org/dist/hive/hive-${hiveversion}/apache-hive-${hiveversion}-bin.tar.gz && \
-	tar zxf apache-hive-${hiveversion}-bin.tar.gz && \
-	mv apache-hive-${hiveversion}-bin hive && \
-	ln -s /opt/hive/jdbc/hive-jdbc-${hiveversion}-standalone.jar /opt/hive/lib/ && \
-	ln -s /usr/share/java/postgresql-jdbc4.jar /opt/hive/lib/postgresql-jdbc4.jar && \
-	rm apache-hive-${hiveversion}-bin.tar.gz && \
+#    cd /opt && \
+#	wget --quiet http://archive.apache.org/dist/hive/hive-${hiveversion}/apache-hive-${hiveversion}-bin.tar.gz && \
+#	tar zxf apache-hive-${hiveversion}-bin.tar.gz && \
+#	mv apache-hive-${hiveversion}-bin hive && \
+#	ln -s /opt/hive/jdbc/hive-jdbc-${hiveversion}-standalone.jar /opt/hive/lib/ && \
+#	ln -s /usr/share/java/postgresql-jdbc4.jar /opt/hive/lib/postgresql-jdbc4.jar && \
+#	rm apache-hive-${hiveversion}-bin.tar.gz && \
+#	mkdir /opt/hive-data && \
+#    mkdir /scripts && \
+#    chown -R root:root /opt/hive-data && \
+#    chmod 700 /opt/hive-data && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
 ## SPARK
@@ -102,6 +110,12 @@ RUN cd /opt  && \
     echo "JAVA_HOME=/usr/lib/jvm/adoptopenjdk-8-hotspot-amd64" >> /opt/hadoop/etc/hadoop/hadoop-env.sh && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
+
+ADD hdfs-site.xml core-site.xml log4j.properties /opt/hadoop/etc/hadoop/
+ADD hive-env.sh /etc/profile.d/
+ADD hive-site.xml /opt/hive/conf/
+
+ENV LD_LIBRARY_PATH $JAVA_HOME/jre/lib/amd64:$JAVA_HOME/jre/lib/amd64/server
 
 RUN gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys E298A3A825C0D65DFD57CBB651716619E084DAB9 && \
     gpg -a --export E298A3A825C0D65DFD57CBB651716619E084DAB9 | apt-key add - && \
@@ -153,3 +167,4 @@ EXPOSE 4040
 # https://github.com/protocolbuffers/protobuf/releases/download/v3.13.0/protobuf-all-3.13.0.tar.gz
 # C++
 # https://github.com/protocolbuffers/protobuf/releases/download/v3.13.0/protobuf-cpp-3.13.0.tar.gz
+# http://archive.apache.org/dist/mesos/1.9.0/mesos-1.9.0.tar.gz
