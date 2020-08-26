@@ -3,7 +3,7 @@ FROM ubuntu:bionic
 MAINTAINER Jim Harner <ejharner@gmail.com>
 
 ARG hadoopversion=2.9.2
-ARG hiveversion=2.1.1
+ARG hiveversion=2.3.7
 ARG sparkversion=2.4.6
 ARG javaversion=8
 ARG javaversion_number=1.${javaversion}.0
@@ -126,7 +126,7 @@ RUN gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys E298A3A825C0D65DFD
     rm -rf /var/lib/apt/lists/*
 
 ADD Renviron /usr/local/lib/R/etc/
-ADD hdfs-site.xml core-site.xml log4j.properties /opt/hadoop/etc/hadoop/
+ADD hdfs-site.xml core-site.xml hive-exec-log4j2.properties hive-log4j2.properties /opt/hadoop/etc/hadoop/
 ADD rhdfs.tar.gz rmr.tar.gz /tmp/pkgs/
 ADD protobuf-2.5.0.tar.gz /tmp/
 
