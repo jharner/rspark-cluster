@@ -3,7 +3,7 @@ FROM ubuntu:bionic
 MAINTAINER Jim Harner <ejharner@gmail.com>
 
 ARG hadoopversion=2.10.0
-ARG hiveversion=2.3.7
+ARG hiveversion=2.1.1
 ARG sparkversion=3.0.0
 ARG javaversion=8
 ARG javaversion_number=1.${javaversion}.0
