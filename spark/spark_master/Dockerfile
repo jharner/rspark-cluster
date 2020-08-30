@@ -6,8 +6,6 @@ ARG hadoopversion=2.10.0
 ARG hiveversion=2.1.1
 ARG sparkversion=3.0.0
 ARG javaversion=8
-ARG javaversion_number=1.${javaversion}.0
-
 # http://blog.stuart.axelbrooke.com/python-3-on-spark-return-of-the-pythonhashseed
 ENV PYTHONHASHSEED 0
 ENV PYTHONIOENCODING UTF-8
@@ -54,20 +52,22 @@ RUN apt-get update && \
 	add-apt-repository --yes https://adoptopenjdk.jfrog.io/adoptopenjdk/deb/ && \
 # Update machine and install
     apt-get update && \
-    apt-get install --no-install-recommends -y postgresql-client-${pgversion} libicu-dev adoptopenjdk-8-hotspot && \
-    update-java-alternatives -s adoptopenjdk-8-hotspot-amd64 && \
+    apt-get install --no-install-recommends -y postgresql-client-${pgversion} libicu-dev adoptopenjdk-${javaversion}-hotspot && \
+    update-java-alternatives -s adoptopenjdk-${javaversion}-hotspot-amd64 && \
 #	wget -qO - https://adoptopenjdk.jfrog.io/adoptopenjdk/api/gpg/key/public | apt-key add - && \
 #	add-apt-repository --yes https://adoptopenjdk.jfrog.io/adoptopenjdk/deb/ && \
 	cd /opt && \
     wget https://apache.bintray.com/arrow/$(lsb_release --id --short | tr 'A-Z' 'a-z')/apache-arrow-archive-keyring-latest-$(lsb_release --codename --short).deb && \
     apt-get install -y -V ./apache-arrow-archive-keyring-latest-$(lsb_release --codename --short).deb && \
     apt-get update && \
-    apt-get install -y -V libarrow-dev libarrow-glib-dev libarrow-dataset-dev libarrow-flight-dev libplasma-dev libplasma-glib-dev libgandiva-dev libgandiva-glib-dev libparquet-dev libparquet-glib-dev && \
+    apt-get install -y -V libprotobuf-dev libprotobuf-c-dev protobuf-compiler protobuf-c-compiler libprotoc-dev \
+                          libarrow-dev libarrow-glib-dev libarrow-dataset-dev libarrow-flight-dev libplasma-dev libplasma-glib-dev \
+                          libgandiva-dev libgandiva-glib-dev libparquet-dev libparquet-glib-dev && \
     rm ./apache-arrow-archive-keyring-latest-$(lsb_release --codename --short).deb && \
     python -m pip install py4j pyarrow && \
     wget --quiet https://jdbc.postgresql.org/download/postgresql-42.2.14.jar && \
-    echo "JAVA_HOME=/usr/lib/jvm/adoptopenjdk-8-hotspot-amd64" >> /etc/profile && \
-    export JAVA_HOME=/usr/lib/jvm/adoptopenjdk-8-hotspot-amd64 && \
+    echo "JAVA_HOME=/usr/lib/jvm/adoptopenjdk-${javaversion}-hotspot-amd64" >> /etc/profile && \
+    export JAVA_HOME=/usr/lib/jvm/adoptopenjdk-${javaversion}-hotspot-amd64 && \
 	apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -81,24 +81,9 @@ RUN cd /opt && \
 	(cd /opt/hadoop; ln -s share/hadoop/tools/lib/hadoop-streaming-${hadoopversion}.jar hadoop-streaming.jar) && \
     chown -R root:root $HADOOP_HOME && \
     mkdir -p /opt/hadoop-data; chown -R root:root /opt/hadoop-data; chmod 700 /opt/hadoop-data && \
-## HIVE
-#    cd /opt && \
-#	wget --quiet http://archive.apache.org/dist/hive/hive-${hiveversion}/apache-hive-${hiveversion}-bin.tar.gz && \
-#	tar zxf apache-hive-${hiveversion}-bin.tar.gz && \
-#	mv apache-hive-${hiveversion}-bin hive && \
-#	ln -s /opt/hive/jdbc/hive-jdbc-${hiveversion}-standalone.jar /opt/hive/lib/ && \
-#	ln -s /usr/share/java/postgresql-jdbc4.jar /opt/hive/lib/postgresql-jdbc4.jar && \
-#	rm apache-hive-${hiveversion}-bin.tar.gz && \
-#	mkdir /opt/hive-data && \
-#    mkdir /scripts && \
-#    chown -R root:root /opt/hive-data && \
-#    chmod 700 /opt/hive-data && \
-	apt-get clean && \
-	rm -rf /var/lib/apt/lists/*
 ## SPARK
-RUN cd /opt  && \
+    cd /opt  && \
 	wget --quiet http://archive.apache.org/dist/spark/spark-${sparkversion}/${SPARK_PACKAGE}.tgz  && \
-#	gunzip ${SPARK_PACKAGE}.tgz && \
 	tar zxvf ${SPARK_PACKAGE}.tgz  && \
 	mv ${SPARK_PACKAGE} spark  && \
 	rm ${SPARK_PACKAGE}.tgz  && \
@@ -107,7 +92,7 @@ RUN cd /opt  && \
 	cp /opt/spark/conf/spark-env.sh.template /opt/spark/conf/spark-env.sh  && \
 	echo 'export SPARK_DIST_CLASSPATH=/opt/postgresql-42.2.14.jar:$(/opt/hadoop/bin/hadoop classpath)' >> /opt/spark/conf/spark-env.sh && \
     chown -R root:root $SPARK_HOME && \
-    echo "JAVA_HOME=/usr/lib/jvm/adoptopenjdk-8-hotspot-amd64" >> /opt/hadoop/etc/hadoop/hadoop-env.sh && \
+    echo "JAVA_HOME=/usr/lib/jvm/adoptopenjdk-${javaversion}-hotspot-amd64" >> /opt/hadoop/etc/hadoop/hadoop-env.sh && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
 
@@ -142,17 +127,16 @@ RUN gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys E298A3A825C0D65DFD
 ADD Renviron /usr/local/lib/R/etc/
 ADD hdfs-site.xml core-site.xml hive-exec-log4j2.properties hive-log4j2.properties /opt/hadoop/etc/hadoop/
 ADD rhdfs.tar.gz rmr.tar.gz /tmp/pkgs/
-ADD protobuf-2.5.0.tar.gz /tmp/
 
 # Install repository packages
 # RUN cd /tmp/pkgs && R CMD INSTALL rmr2 rhdfs
-RUN cd /tmp && \
-    cd /tmp/protobuf-2.5.0 && ./configure --prefix=/usr && make && make install && cd .. 	&& rm -rf protobuf-*
+
 RUN # ln -s /usr/local/bin/Rscript /usr/bin/Rscript && \
 # Add path to profile so commands are found if attach to the container
-    echo "PATH='/opt/hadoop/bin:/opt/spark/bin:/opt/hive/bin:$PATH'" >> /etc/profile && \
-    export PATH=/opt/hadoop/bin:/opt/spark/bin:/opt/hive/bin:$PATH && \
-    echo "PATH='/opt/hadoop/bin:/opt/spark/bin:/opt/hive/bin:$PATH'" >> /home/rstudio/.bashrc
+    echo "PATH='/opt/hadoop/bin:/opt/spark/bin:$PATH'" >> /etc/profile && \
+    export PATH=/opt/hadoop/bin:/opt/spark/bin:$PATH && \
+    echo "PATH='/opt/hadoop/bin:/opt/spark/bin:$PATH'" >> /.bashrc && \
+    . /.bashrc
 
 WORKDIR $SPARK_HOME
 CMD ["bin/spark-class", "org.apache.spark.deploy.master.Master"]
@@ -162,9 +146,15 @@ EXPOSE 8080
 EXPOSE 8081
 EXPOSE 4040
 
-###########################################################################################
-## link to protobuf-all libraries
-# https://github.com/protocolbuffers/protobuf/releases/download/v3.13.0/protobuf-all-3.13.0.tar.gz
-# C++
-# https://github.com/protocolbuffers/protobuf/releases/download/v3.13.0/protobuf-cpp-3.13.0.tar.gz
-# http://archive.apache.org/dist/mesos/1.9.0/mesos-1.9.0.tar.gz
+## HIVE
+#    cd /opt && \
+#	wget --quiet http://archive.apache.org/dist/hive/hive-${hiveversion}/apache-hive-${hiveversion}-bin.tar.gz && \
+#	tar zxf apache-hive-${hiveversion}-bin.tar.gz && \
+#	mv apache-hive-${hiveversion}-bin hive && \
+#	ln -s /opt/hive/jdbc/hive-jdbc-${hiveversion}-standalone.jar /opt/hive/lib/ && \
+#	ln -s /usr/share/java/postgresql-jdbc4.jar /opt/hive/lib/postgresql-jdbc4.jar && \
+#	rm apache-hive-${hiveversion}-bin.tar.gz && \
+#	mkdir /opt/hive-data && \
+#    mkdir /scripts && \
+#    chown -R root:root /opt/hive-data && \
+#    chmod 700 /opt/hive-data && \
