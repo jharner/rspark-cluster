@@ -3,9 +3,8 @@ NO_EXIT=1
 while  [ ${NO_EXIT} = 1 ]
 do
   echo $'\n'
-
   PS3='Docker Image Manager: '
-  options=("Stop Containers" "Delete Containers" "Delete Orphan Images" "Delete All Images" "Delete Hanging Volumes" "Quit")
+  options=("Stop Containers" "Delete Containers" "Delete Orphan Images" "Delete All Images" "Delete Hanging Volumes" "Remove Unused Networks" "Quit")
   select opt in "${options[@]}"
   do
       case $opt in
@@ -27,6 +26,10 @@ do
               ;;
           "Delete Hanging Volumes")
               docker volume rm $(docker volume ls -f dangling=true -q)
+              break
+              ;;
+          "Remove Unused Networks")
+              docker network prune -f
               break
               ;;
           "Quit")
