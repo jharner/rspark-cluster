@@ -6,6 +6,7 @@ ARG hadoopversion=2.10.0
 ARG hiveversion=2.1.1
 ARG sparkversion=3.0.0
 ARG javaversion=8
+
 # http://blog.stuart.axelbrooke.com/python-3-on-spark-return-of-the-pythonhashseed
 ENV PYTHONHASHSEED 0
 ENV PYTHONIOENCODING UTF-8
@@ -41,6 +42,7 @@ RUN apt-get update && \
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
+
 # Install Python 3
 RUN apt-get update && \
     apt-get install -y --no-install-recommends curl unzip python3 python3-setuptools python3-pip apt-utils wget ca-certificates apt-transport-https dirmngr gnupg software-properties-common lsb-release unzip && \
