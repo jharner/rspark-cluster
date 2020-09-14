@@ -123,8 +123,7 @@ RUN gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys E298A3A825C0D65DFD
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-ADD Renviron /usr/local/lib/R/etc/
-ADD hdfs-site.xml core-site.xml hive-exec-log4j2.properties hive-log4j2.properties /opt/hadoop/etc/hadoop/
+ADD hdfs-site.xml core-site.xml log4j.properties /opt/hadoop/etc/hadoop/
 ADD rhdfs.tar.gz rmr.tar.gz /tmp/pkgs/
 
 # Install repository packages
