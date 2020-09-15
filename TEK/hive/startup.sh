@@ -7,7 +7,7 @@ export HIVE_HOME=/opt/hive
 export HADOOP_HOME=/opt/hadoop 
 export HADOOP=/opt/hadoop/bin/hadoop
 
-sleep 25
+sleep 20
 
 echo "** Checking Postgres Connection **"
 /scripts/waitfor.sh -h postgres -p 5432 -t 120
